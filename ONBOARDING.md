@@ -422,7 +422,7 @@ proofs a shell cannot make:
 1. **Slack read** — one read-only listing of the first `watch` target (or the owner's
    profile when the list is empty). It must succeed; capture nothing from it.
 2. **Owner DM** — one short message to `owner_dm_chat_id` with
-   `mcp__platform-outbound__send_channel_message`: *"Slack Knowledge Sync is set up. Ask
+   `mcp__platform-outbound__send_channel_message`: *"Slack Knowledge Base is set up. Ask
    me here: 'capture this' with a thread link."* The owner confirms they got it.
 
 **Then release the schedules**: tick the last checklist item and call

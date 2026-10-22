@@ -1,4 +1,4 @@
-# slack-knowledge-sync
+# Slack Knowledge Base
 
 A **personal** DAM agent that reads your own Slack — only the channels, direct messages,
 threads, mentions and keywords you tell it to watch — pulls out the decisions, facts and

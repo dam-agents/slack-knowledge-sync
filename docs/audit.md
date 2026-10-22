@@ -39,7 +39,7 @@ writes are its `work/AUDIT.log` line and memory consolidation.
 Always sent, green or not, to `owner_dm_chat_id` (and the chat UI):
 
 ```
-Slack Knowledge Sync weekly audit — <date> · <n> ok · <n> warn · <n> fail
+Slack Knowledge Base weekly audit — <date> · <n> ok · <n> warn · <n> fail
 Week: <threads> threads · <captured> captured · <skipped> skipped · <failed> failed · <sweeps> sweeps
 Checks: <one line per fail and warn, never summarised away>
 Action needed: <one line per item only the owner can do, or "none">
