@@ -8,7 +8,7 @@
 
 schemaVersion: v1
 id: slack-knowledge-sync
-name: Slack Knowledge Sync
+name: Slack Knowledge Base
 tagline: Turns the Slack conversations you choose into a knowledge base you keep, alone or with your team in GitHub.
 description: >-
   A personal agent that reads its owner's own Slack, but only the channels, direct

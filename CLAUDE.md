@@ -1,4 +1,4 @@
-# Slack Knowledge Sync
+# Slack Knowledge Base
 
 A **personal** agent: it reads its owner's own Slack — only what the owner listed in
 `watch` — keeps the decisions, facts and context worth keeping (`capture_focus`), and
