@@ -1,0 +1,71 @@
+# Tools removed from every Claude Code session of this agent: install.sh writes them to
+# permissions.deny in ~/.claude/settings.json. A bare tool name removes the tool's
+# definition from every request, the main session's and its subagents', and from the
+# owner's direct session too. One name per line.
+#
+# Two groups:
+#   1. Every Slack MCP write tool. The Slack connection acts AS THE OWNER, so a write
+#      would post in their name. This group is generated from the `write` lines of
+#      slack-tools.txt and must stay identical to them (test_slack_readonly.sh).
+#      guard.sh refuses any unclassified mcp__slack__* call on top of this list.
+#   2. Tools no procedure of this definition calls, so their definitions leave every
+#      request (test_harness.sh fails when CLAUDE.md, ONBOARDING.md, README.md or docs/
+#      names one of them).
+#
+# The platform's own prompts call tools too, and these stay available: onboarding
+# calls set_onboarding_checklist, complete_onboarding_step and mark_onboarding_complete;
+# a Kit Update calls list_schedules, create_schedule, report_kit_updated and
+# cancel_kit_update (test_harness.sh fails when one of them is listed here).
+
+# 1. Slack writes — never, under any instruction
+mcp__slack__slack_send_message
+mcp__slack__slack_send_message_draft
+mcp__slack__slack_schedule_message
+mcp__slack__slack_add_reaction
+mcp__slack__slack_create_canvas
+mcp__slack__slack_update_canvas
+mcp__slack__slack_create_conversation
+
+# 2. platform-outbound — the Artifact Library (a published page is public by link;
+# this agent publishes nothing there, so captured content has no path to one)
+mcp__platform-outbound__create_artifact
+mcp__platform-outbound__update_artifact
+mcp__platform-outbound__delete_artifact
+mcp__platform-outbound__get_artifact
+mcp__platform-outbound__list_artifacts
+mcp__platform-outbound__create_artifact_upload_url
+mcp__platform-outbound__create_artifact_download_url
+mcp__platform-outbound__set_artifact_sharing
+mcp__platform-outbound__create_artifact_folder
+mcp__platform-outbound__update_artifact_folder
+mcp__platform-outbound__delete_artifact_folder
+mcp__platform-outbound__list_artifact_folders
+# platform-outbound — skills, case studies, sub-agents, hand-offs
+mcp__platform-outbound__uninstall_skill
+mcp__platform-outbound__publish_skill
+mcp__platform-outbound__list_skill_sources
+mcp__platform-outbound__list_skills_in_source
+mcp__platform-outbound__get_case_study_baseline
+mcp__platform-outbound__submit_case_study
+mcp__platform-outbound__spawn_subagent
+mcp__platform-outbound__await_subagents
+mcp__platform-outbound__list_harnesses
+mcp__platform-outbound__list_connections
+mcp__platform-outbound__get_budget
+mcp__platform-outbound__hand_off_to_agent
+
+# Claude Code built-in tools. WebFetch and WebSearch are denied on purpose: a link in
+# a captured thread is recorded, never fetched — a fetch or a search query would carry
+# private Slack content off the pod.
+WebFetch
+WebSearch
+Workflow
+DesignSync
+ReportFindings
+CronCreate
+CronDelete
+CronList
+ScheduleWakeup
+EnterWorktree
+ExitWorktree
+NotebookEdit

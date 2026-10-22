@@ -1,0 +1,33 @@
+# Every tool of the Slack MCP server (the "Slack Account" connection, MCP entry
+# `slack`), classified. This file is the single source of truth for Slack access:
+#
+#   read  <tool>  — allowed; the only Slack tools any procedure may call
+#   write <tool>  — anything that posts, replies, reacts, edits, schedules, drafts,
+#                   creates or uploads. Every write line is in denied-tools.txt
+#                   (removed from every session) AND refused by guard.sh.
+#
+# guard.sh allows an mcp__slack__* call only when its name is a `read` line here, so a
+# tool Slack adds later is refused until someone classifies it. Classify a new tool as
+# `read` only when it cannot change anything in Slack; when in doubt it is `write`.
+# test_slack_readonly.sh keeps this file, denied-tools.txt and guard.sh in step.
+
+read  mcp__slack__slack_search_public
+read  mcp__slack__slack_search_public_and_private
+read  mcp__slack__slack_search_channels
+read  mcp__slack__slack_search_users
+read  mcp__slack__slack_search_emojis
+read  mcp__slack__slack_read_channel
+read  mcp__slack__slack_read_thread
+read  mcp__slack__slack_read_canvas
+read  mcp__slack__slack_read_file
+read  mcp__slack__slack_read_user_profile
+read  mcp__slack__slack_list_channel_members
+read  mcp__slack__slack_get_reactions
+
+write mcp__slack__slack_send_message
+write mcp__slack__slack_send_message_draft
+write mcp__slack__slack_schedule_message
+write mcp__slack__slack_add_reaction
+write mcp__slack__slack_create_canvas
+write mcp__slack__slack_update_canvas
+write mcp__slack__slack_create_conversation
