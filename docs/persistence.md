@@ -1,0 +1,141 @@
+# Persisting `work/` & evolving the definition
+
+Read this file when you need the details behind the end-of-run backup, when the operator
+asks to update the agent or check its version, or when the operator asks for a change to
+the agent definition itself.
+
+## Two stores: shared live state + durable backup
+
+| Path | Kind | Holds |
+| --- | --- | --- |
+| `/home/agent` (outer) | git repo, remote `$DEFINITION_REPO` (`origin`) | Definition: `kit.yaml`, `CLAUDE.md`, `AGENTS.md`, `ONBOARDING.md`, `README.md`, `docs/`, `scripts/`, `VERSION`, `CHANGELOG.md`, `.gitignore`, `LICENSE`. |
+| `/home/agent/work` | **plain data directory** (no `.git`) | Live runtime state. Shared across concurrent runs; the source of truth. |
+| `$GITHUB_REPO_WORK` | git remote, **private**, optional | Durable, versioned **backup** of `work/`. Written only via a disposable tmpfs clone (below). |
+
+`work/` is **never** a git repo: the home volume is virtiofs over NFS, and a `.git`
+mutated there under concurrent runs produces `Stale file handle` (ESTALE) and `.nfs*`
+silly-rename corruption. All git plumbing happens off the shared volume, in a tmpfs
+clone under `/dev/shm`; `work/` itself is only ever read.
+
+The outer `.gitignore` is an allowlist (`/*` then re-include the definition files), so
+**all** of `work/` and the HOME secrets (`.ssh`, `.claude`, `.config`) are invisible to
+the outer repo. A fresh volume seeds state files from the templates in `ONBOARDING.md`
+or restores them from the backup remote; a definition update (fast-forward, or a hard
+reset when the checkout diverged) never collides with live runtime state. **Never run
+`git clean` in `/home/agent`** and never `git add` outside the allowlist (the backup's
+`git add -A` is confined to the tmpfs clone, never the home tree).
+
+## What is lost without a backup
+
+`work/` holds the capture ledger and, in local mode, **the knowledge base itself**
+(`work/knowledge/`). Without `GITHUB_REPO_WORK`, losing the volume loses both: the
+ledger is not reconstructable (Slack carries no marker of what was captured), and the
+notes exist nowhere else unless the owner published them as a DAM knowledge base share or
+uses GitHub mode. In GitHub mode the notes live in `kb_repo` and the PR markers rebuild
+"already captured" for every thread that reached a PR; only skipped threads would be
+re-judged. The backup remote must be **private**: it receives everything in `work/`.
+
+## Backup & restore (`scripts/work-backup.sh`)
+
+Pre-flight scripts never commit or push — their local bookkeeping is written straight to
+the `work/` files and stays on the volume until backed up. At the end of every run where
+the agent did work, as the very last action and only when `$GITHUB_REPO_WORK` is set:
+
+```bash
+LOG_JOB=<mode> bash "$HOME/scripts/work-backup.sh" persist
+```
+
+The script (full rationale in its header) snapshots the current `work/` files into a
+**disposable tmpfs clone**, commits, and pushes. Nothing authoritative lives on tmpfs —
+live state is `work/`, history is the remote, and the clone is re-seeded whenever
+missing or broken, so a pod restart wiping `/dev/shm` never matters. The persist step is
+serialized by a mkdir lock next to the clone (lock-or-skip: a skipped persist is safe —
+the running one snapshots the same shared `work/` moments later, and the next run sweeps
+up any remainder); a rejected non-fast-forward push re-seeds from the new remote tip and
+retries with a fresh snapshot. Never force-push; a push that fails all retries is logged
+and retried next run — not a run failure, because the data is safe on `work/`.
+
+`restore` is the inverse — remote → `work/` (data only, never a `.git`) — run once on a
+fresh volume (`ONBOARDING.md` Step 2a).
+
+## Definition version & upgrade
+
+`VERSION` (repo root, one line, semver) identifies the definition; `work/VERSION` is the
+version this instance last adopted (missing = `1.0.0`). Scheduled runs never touch
+versioning (the weekly audit only *reports* drift); acting happens **in the direct
+session only**: an operator-requested update or version check, and always before any
+self-modification (self-modification.md §8).
+
+**Updating the checkout is the platform's Kit Update.** The platform detects a newer
+commit on the definition's branch, shows the operator an **Update** button, and opens a
+session whose briefing says exactly how to move the checkout: the operator picks which
+upstream changes to take, their local changes are set aside and put back (never
+committed, never pushed), and every conflict is theirs to decide. Follow that briefing
+for the git half; never `git reset`, `git clean` or commit local changes on your own.
+Outside such a session, a version check only reports:
+
+```bash
+git -C /home/agent fetch -q origin main
+git -C /home/agent show origin/main:VERSION 2>/dev/null | head -1   # latest
+head -1 /home/agent/VERSION                                         # checked out
+head -1 /home/agent/work/VERSION 2>/dev/null                        # adopted
+```
+
+Checked-out < latest → **tell the operator the agent is not up to date** (state both
+versions) and point them at the **Update** button. Adopted ≠ checked-out → migrate now.
+All equal → report "up to date".
+
+**Migration** (`from` = adopted, `to` = checked-out):
+
+1. Apply the `CHANGELOG.md` **Upgrade** blocks of every version in `(from, to]`, oldest
+   first. Steps are idempotent (check before create), so re-running a partial attempt is
+   safe; an operator-only step is surfaced, never guessed at.
+2. **Offer every optional feature the crossed versions add.** An **Upgrade** block that
+   introduces an off-by-default feature names the `work/CONFIG.md` key that enables it
+   and its one-line effect (self-modification.md §12); upgrading never adopts it by
+   itself. Collect them across all crossed versions and ask the operator **once, in one
+   message**. A yes writes that key; a no or no answer writes nothing — the missing key
+   is the documented off default — and the migration continues either way. Never enable
+   a feature the operator did not confirm.
+3. Only after every applicable step succeeded, write `to` into `work/VERSION` and log
+   `definition upgraded <from> → <to> (<n> step(s))`, naming the features offered and
+   the answers. A failed step: log + tell the operator, leave `work/VERSION` unchanged
+   (re-offered at the next check).
+4. Rollback (`to` < `from`) → apply nothing, offer nothing; just write `to`.
+
+Whenever an upgrade changes what onboarding produces, its **Upgrade** block runs
+`bash "$HOME/scripts/verify-onboarding.sh"` and applies every `FAIL` line's `fix:` — the
+same verification onboarding ends with, and the only thing that keeps a long-deployed
+instance the same shape as a fresh one.
+
+Back up `work/` afterwards (section above).
+
+## Evolving the agent definition (outer repo)
+
+**First read [self-modification.md](self-modification.md)** — it defines the rules every
+definition change must obey.
+
+Definition changes go through **branch + PR on `$DEFINITION_REPO` — never a direct push
+to `main`, never auto-merge**, and only when deliberately asked — never as part of a
+scheduled run:
+
+```bash
+git -C /home/agent fetch origin main
+git -C /home/agent checkout -b "fix/<short-slug>" origin/main
+git -C /home/agent add -- kit.yaml CLAUDE.md AGENTS.md ONBOARDING.md README.md VERSION CHANGELOG.md .gitignore LICENSE docs scripts
+git -C /home/agent commit -m "<describe the change>"
+git -C /home/agent push -u origin "fix/<short-slug>"
+gh pr create --repo "$DEFINITION_REPO" --base main --head "fix/<short-slug>" \
+  --title "<title>" --body "<what and why>"
+```
+
+The agent's job ends at "PR opened". Use fresh descriptive branch names; runtime state
+never goes to this repo. The PR body says what and why, declares the scope, and records
+the decisions the operator made on purpose (so a reviewer does not raise them again); a
+step only the operator can take — a push under `.github/workflows/`, which needs the
+`workflow` scope — is named there as **operator-only**.
+
+The definition repo may sit on a different host than the systems the agent works on, so
+**every definition-repo call names its host** — `-R "$DEF_HOST/$DEFINITION_REPO"` for
+`gh pr`/`gh issue`, `--hostname "$DEF_HOST"` for `gh api`. The outer-repo `origin` URL
+already carries it, so plain `git fetch`/`push` need nothing extra.

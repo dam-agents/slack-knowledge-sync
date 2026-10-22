@@ -1,0 +1,111 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/dam-agents/dam-starter-kits/main/kit.schema.json
+# kit.yaml — the platform's Starter Kit for slack-knowledge-sync.
+#
+# This repository IS the kit: the platform reads this file out of git, creates the
+# agent from it, seeds this definition into $HOME, and opens the first session on
+# ONBOARDING.md. The schedules here and the ones ONBOARDING reconciles are the same
+# schedules, by the same names, with the same task text (the validator compares them).
+
+schemaVersion: v1
+id: slack-knowledge-sync
+name: Slack Knowledge Sync
+tagline: Turns the Slack conversations you choose into a knowledge base you can keep and share.
+description: >-
+  A personal agent that reads its owner's own Slack, but only the channels, direct
+  messages, threads, mentions and keywords the owner tells it to watch. Per thread it
+  keeps the decisions, facts, owners, dates, how-tos and links worth keeping, skips
+  noise and every HR, health, personal, credential and legal matter, and writes plain
+  markdown notes with a Slack permalink for each fact. The knowledge base lives in the
+  agent's workspace (shareable as a DAM knowledge base, read-only) or, optionally, as
+  pull requests to a GitHub repository. It captures on request in the owner's direct
+  message, and optionally once a day; a weekly self-audit and an hourly health monitor
+  report to the owner by direct message. It never posts, reacts or edits anything in
+  Slack. **It acts as you in Slack: never share this agent, never add it to a shared
+  channel, and never grant anyone else access to it, because doing so hands them your
+  Slack.** For a team knowledge base, each teammate runs their own copy.
+category: knowledge
+icon: book
+docsUrl: https://github.com/dam-agents/slack-knowledge-sync/blob/main/README.md
+
+# The definition is seeded from this very repository, at the commit the kit was read
+# at, into $HOME — never a clone, so nothing the platform put there is removed.
+seed:
+  self: true
+  into: home
+
+# NOTE: no `onboarding` field, deliberately. Absent means the platform composes the
+# briefing from the live agent state and ends it with "follow ONBOARDING.md", which
+# keeps the onboarding gate, the checklist tools and the hold on schedules.
+
+# The knowledge base: share roots resolve inside the work directory
+# (/home/agent/work), so `knowledge` publishes work/knowledge/ and nothing else.
+knowledgeBase:
+  shareRoots: [knowledge]
+
+connections:
+  - accepts: [slack]
+    required: true
+    note: >-
+      Your own Slack account, read-only. The agent reads only what you tell it to
+      watch, and its harness blocks every Slack write tool. It acts as you, so this
+      agent must never be shared.
+  - accepts: [github, github-enterprise]
+    required: false
+    note: >-
+      Optional. Needed only for GitHub mode (each capture becomes a pull request to
+      the knowledge base repository you name), for a private state backup
+      (GITHUB_REPO_WORK), and for version checks of this definition.
+
+channels:
+  - type: slack
+    note: >-
+      Your direct message with the DAM bot, and nothing else: this agent serves one
+      person. Never bind it to a shared channel.
+
+schedules:
+  - name: slack-knowledge-sync-sweep-daily
+    cron: "0 6 * * *"
+    description: Once a day, captures new threads from everything you asked it to watch.
+    sessionMode: fresh
+    enabled: false
+    precheck: 'bash "$HOME/scripts/precheck.sh" sweep'
+    task: >-
+      Slack knowledge sweep. The precheck already ran the pre-flight and found work:
+      read the worklist JSON at the path its output names, and never run
+      preflight.sh again this run. If the prompt carries no worklist path, run
+      `bash "$HOME/scripts/preflight.sh" sweep` yourself. Then follow CLAUDE.md →
+      "Sweep run": read exactly the worklist's read_set, read every watched
+      conversation since the worklist's `since`, capture or skip each thread per
+      docs/capture.md, record each with scripts/state.sh, close the sweep with
+      `scripts/state.sh sweep-done`, report to the owner only as report_level
+      allows, and back up work/ at the end with
+      `bash "$HOME/scripts/work-backup.sh" persist` when $GITHUB_REPO_WORK is set.
+  - name: slack-knowledge-sync-audit-weekly
+    cron: "0 6 * * 5"
+    description: Weekly self-audit, reported to you as one traffic-light message.
+    sessionMode: fresh
+    task: >-
+      Weekly self-audit. This run is ungated: run
+      `bash "$HOME/scripts/preflight.sh" audit` first. Then follow CLAUDE.md →
+      "Audit run": read docs/audit.md, do the judgment checks, send the
+      traffic-light report, append work/AUDIT.log, and back up work/ at the end
+      with `bash "$HOME/scripts/work-backup.sh" persist` when $GITHUB_REPO_WORK is
+      set.
+  - name: slack-knowledge-sync-monitor-hourly
+    cron: "17 * * * *"
+    description: Hourly health check over local files; messages you only when something broke.
+    sessionMode: fresh
+    precheck: 'bash "$HOME/scripts/precheck.sh" monitor'
+    task: >-
+      Agent monitor. The precheck already ran scripts/monitor.sh and found alerts
+      due: read the worklist JSON at the path its output names, and never run
+      monitor.sh again this run. If the prompt carries no worklist path, run
+      `bash "$HOME/scripts/monitor.sh"` yourself. Then follow CLAUDE.md → "Monitor
+      run": read docs/monitor.md, report every alert of the worklist in one
+      message, acknowledge them with `scripts/monitor.sh ack <ids>` only after the
+      send, never repair or re-run anything in response, and back up work/ with
+      `bash "$HOME/scripts/work-backup.sh" persist` when $GITHUB_REPO_WORK is set.
+
+# The harness adapter (hooks, the Slack write-tool deny list, the Slack write
+# guard) is written for Claude Code: scripts/harness/claude-code/.
+harnesses: [claude-code]

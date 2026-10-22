@@ -1,0 +1,13 @@
+# Changelog
+
+**Migration instructions, not a change log.** Per version, the idempotent **Upgrade**
+steps a deployed instance applies when crossing it — what to run, update, or change
+(schedules, config keys, state formats). Most versions need nothing. What changed and
+why lives in the PR and commit history, not here. Consumed by the version check
+([docs/persistence.md](docs/persistence.md) → **Definition version & upgrade**);
+authoring rules: [docs/self-modification.md](docs/self-modification.md) §12.
+
+## 1.0.0 — 2026-10-22
+
+**Upgrade:**
+Nothing — initial version; onboarding records it (`work/VERSION`).
