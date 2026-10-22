@@ -87,7 +87,7 @@ The schedules on this agent are **held** until Step 6 marks onboarding complete.
    `export DEFINITION_REPO="<owner/repo>"` (persisted in Step 3).
 6. **`GITHUB_REPO_WORK`** — optional, `<owner>/<repo>` of a **private** repository for
    the `work/` backup. Say once: *in local mode your knowledge base lives on this agent's
-   volume; without a backup or a share, losing the volume loses it.*
+   volume; without a backup or GitHub mode, losing the volume loses it.*
 
 Then, where GitHub was granted, `command -v gh >/dev/null && gh auth setup-git`, and
 report (never block on) CLI tools behind a version-manager shim:
@@ -255,8 +255,7 @@ and only its id is kept.* Do not ask whether to change that.
 
 4. **Where the knowledge base lives** *(checklist: `storage`)*:
    - **Here** (default, `kb_mode: local`) — notes on this agent's volume in
-     `work/knowledge/`, which the platform can publish as a read-only DAM knowledge base
-     for others to connect to.
+     `work/knowledge/`, private to the owner. To share it, use GitHub.
    - **A GitHub repository** (`kb_mode: github`) — each capture becomes a pull request
      to `kb_repo` (`[host/]owner/repo`) under `kb_path` (default `knowledge/`); nothing
      is pushed to the default branch. This is the team pattern: one shared repository,

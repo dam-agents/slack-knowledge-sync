@@ -58,10 +58,10 @@ while IFS= read -r f; do
   problem "${f#"$DIR"/}" fail "credential-shaped string — redact the field and tell the owner to rotate it"
 done < <(grep -rlE "$SECRET_RE" "$DIR" 2>/dev/null | sort)
 
-# a dot-file is never published (the share walker skips it) — a note there is lost
+# a dot-file is hidden from listings, so readers miss a note there
 while IFS= read -r f; do
   [ -n "$f" ] || continue
-  problem "${f#"$DIR"/}" warn "dot-named path — a shared knowledge base never publishes it"
+  problem "${f#"$DIR"/}" warn "dot-named path — rename it so readers see it"
 done < <(find "$DIR" -mindepth 1 -name '.*' ! -name '.*.lock' 2>/dev/null | sort)
 
 jq -nc --arg d "$DIR" --argjson n "$NOTES" --argjson p "$PROBLEMS" '{dir:$d, notes:$n, problems:$p}'

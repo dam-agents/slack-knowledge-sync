@@ -4,8 +4,7 @@ A **personal** agent: it reads its owner's own Slack — only what the owner lis
 `watch` — keeps the decisions, facts and context worth keeping (`capture_focus`), and
 maintains a knowledge base from them. Unit of work: one Slack **thread**, id
 `<channel_id>:<thread_ts>` (a lone message is a thread of one). The knowledge base is
-markdown under `work/knowledge/` (local mode, shareable read-only as a DAM knowledge
-base) or pull requests to `kb_repo` (GitHub mode).
+markdown under `work/knowledge/` (local mode, private to the owner) or pull requests to `kb_repo` (GitHub mode).
 
 **The Slack connection acts as the owner.** Whoever can instruct this agent can read what
 the owner can read. So it serves exactly one person, its Slack is **read-only**, and no

@@ -9,15 +9,14 @@
 schemaVersion: v1
 id: slack-knowledge-sync
 name: Slack Knowledge Sync
-tagline: Turns the Slack conversations you choose into a knowledge base you can keep and share.
+tagline: Turns the Slack conversations you choose into a knowledge base you keep, alone or with your team in GitHub.
 description: >-
   A personal agent that reads its owner's own Slack, but only the channels, direct
   messages, threads, mentions and keywords the owner tells it to watch. Per thread it
   keeps the decisions, facts, owners, dates, how-tos and links worth keeping, skips
   noise and every HR, health, personal, credential and legal matter, and writes plain
   markdown notes with a Slack permalink for each fact. The knowledge base lives in the
-  agent's workspace (shareable as a DAM knowledge base, read-only) or, optionally, as
-  pull requests to a GitHub repository. It captures on request in the owner's direct
+  agent's workspace or, to share it, as pull requests to a GitHub repository. It captures on request in the owner's direct
   message, and optionally once a day; a weekly self-audit and an hourly health monitor
   report to the owner by direct message. It never posts, reacts or edits anything in
   Slack. **It acts as you in Slack: never share this agent, never add it to a shared
@@ -36,11 +35,6 @@ seed:
 # NOTE: no `onboarding` field, deliberately. Absent means the platform composes the
 # briefing from the live agent state and ends it with "follow ONBOARDING.md", which
 # keeps the onboarding gate, the checklist tools and the hold on schedules.
-
-# The knowledge base: share roots resolve inside the work directory
-# (/home/agent/work), so `knowledge` publishes work/knowledge/ and nothing else.
-knowledgeBase:
-  shareRoots: [knowledge]
 
 connections:
   - accepts: [slack]

@@ -4,8 +4,8 @@ A **personal** DAM agent that reads your own Slack — only the channels, direct
 threads, mentions and keywords you tell it to watch — pulls out the decisions, facts and
 context worth keeping, and maintains a knowledge base from them: plain markdown notes,
 one per topic, every fact linked to the Slack message it came from. The knowledge base
-lives on the agent (and can be shared read-only as a DAM knowledge base) or, optionally,
-in a GitHub repository as pull requests.
+lives on the agent, private to you, or — to share it — in a GitHub repository as pull
+requests.
 
 > **Never share this agent. Never add it to a shared channel. Never grant anyone else
 > access to it.** It reads Slack *as you*: anyone who can instruct it can read what you
@@ -14,8 +14,7 @@ in a GitHub repository as pull requests.
 **For a team:** keep one shared knowledge base, and have each teammate run **their own**
 copy of this agent feeding it — either GitHub mode pointing at one shared repository
 (each capture is a pull request, and a hidden marker keeps two teammates' agents from
-filing the same thread twice), or each person publishing their own local knowledge base
-and the others connecting to it read-only through DAM knowledge base sharing.
+filing the same thread twice). GitHub is the only way to share it.
 
 ## How it works
 
@@ -120,8 +119,7 @@ Filled at onboarding; exact semantics in [`docs/config.md`](docs/config.md).
   requests; never the default branch). The backup needs a private repository. Neither
   needs the `workflow` scope.
 - **External surfaces:** your own DM with the DAM bot (reports); in local mode, the
-  knowledge base on the volume, which you may publish as a DAM knowledge base share
-  (read-only for whoever holds the share string); in GitHub mode, pull requests to
+  knowledge base on the volume, private to you; in GitHub mode, pull requests to
   `kb_repo` — visible to everyone who can read that repository; with
   `definition_issues: enabled`, anonymous issues on this public repository. It publishes
   nothing to the Artifact Library and fetches nothing from the web.
@@ -131,13 +129,13 @@ Filled at onboarding; exact semantics in [`docs/config.md`](docs/config.md).
 `work/` is a plain directory on the agent's volume. With `GITHUB_REPO_WORK` set, every
 run that changed it ends with `scripts/work-backup.sh persist` (a disposable tmpfs clone,
 never a git repo on the volume). Without it, **losing the volume loses the local
-knowledge base** unless it was shared or GitHub mode is used. Definition updates arrive
+knowledge base** unless GitHub mode is used. Definition updates arrive
 through the platform's Kit Update and never touch `work/`.
 [`docs/persistence.md`](docs/persistence.md) has the details.
 
 ## Files
 
-- [`kit.yaml`](kit.yaml) — the Starter Kit: seed, connections, schedules, knowledge base share root.
+- [`kit.yaml`](kit.yaml) — the Starter Kit: seed, connections, schedules.
 - [`CLAUDE.md`](CLAUDE.md) — the slim core manual loaded on every run.
 - [`AGENTS.md`](AGENTS.md) — harness entry pointer to `CLAUDE.md`; carries no rules.
 - [`ONBOARDING.md`](ONBOARDING.md) — first-run setup and the `work/` seed templates.

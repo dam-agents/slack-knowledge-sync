@@ -118,7 +118,7 @@ Local mode writes under `work/knowledge/`; GitHub mode writes the same files und
 - **Index** — `index.md` lists every note with one line each; update it with the note.
 - **Source log** — append one line per captured thread to `sources/<YYYY-MM>.md`:
   `- <UTC date> <permalink> → <note paths>`. No content, no names.
-- **Usage guide** — `USAGE_GUIDE.md` (seeded at onboarding) tells a reader of the shared
+- **Usage guide** — `USAGE_GUIDE.md` (seeded at onboarding) tells a reader of the
   knowledge base what it covers and how it is laid out; update its topic list when a new
   top-level topic appears. It never names the owner's channels or people.
 - Permalinks: `https://<workspace>.slack.com/archives/<channel_id>/p<ts without the dot>`

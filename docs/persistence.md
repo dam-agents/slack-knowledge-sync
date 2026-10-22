@@ -30,8 +30,7 @@ reset when the checkout diverged) never collides with live runtime state. **Neve
 `work/` holds the capture ledger and, in local mode, **the knowledge base itself**
 (`work/knowledge/`). Without `GITHUB_REPO_WORK`, losing the volume loses both: the
 ledger is not reconstructable (Slack carries no marker of what was captured), and the
-notes exist nowhere else unless the owner published them as a DAM knowledge base share or
-uses GitHub mode. In GitHub mode the notes live in `kb_repo` and the PR markers rebuild
+notes exist nowhere else unless the owner uses GitHub mode. In GitHub mode the notes live in `kb_repo` and the PR markers rebuild
 "already captured" for every thread that reached a PR; only skipped threads would be
 re-judged. The backup remote must be **private**: it receives everything in `work/`.
 
