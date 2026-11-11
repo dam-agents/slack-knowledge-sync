@@ -19,7 +19,7 @@ for w in $(sed -e 's/#.*//' "$A/slack-tools.txt" | awk '$1 == "write" {print $2}
 done
 assert_eq true "$(jq '.permissions.deny | index("OperatorTool") != null' "$S")" "the operator's deny entry stays"
 assert_eq true "$(jq '.autoMode.allow | index("mine") != null' "$S")" "the operator's auto-mode rule stays"
-assert_contains "guard.sh" "$(jq -r '.hooks.PreToolUse[] | select(.matcher == "mcp__slack__.*|Bash") | .hooks[].command' "$S")" "PreToolUse guard registered for Slack and Bash"
+assert_contains "guard.sh" "$(jq -r '.hooks.PreToolUse[] | select(.matcher == "mcp__slack__.*|mcp__platform-outbound__create_artifact|Bash") | .hooks[].command' "$S")" "PreToolUse guard registered for Slack and Bash"
 before="$(cat "$S")"; inst >/dev/null
 assert_eq "$before" "$(cat "$S")" "a second install changes nothing"
 assert_eq 1 "$(jq '[.hooks.PreToolUse[] | select(.hooks[].command | endswith("guard.sh"))] | length' "$S")" "the guard is registered once"
@@ -48,4 +48,13 @@ assert_eq 2 "$(g 'gh api repos/acme/widgets/issues -f title=x')" "a gh api issue
 assert_eq 0 "$(g 'gh issue list -R acme/widgets')" "an issue read is allowed"
 assert_eq 0 "$(g 'gh pr create -R acme/widgets --title x --body-file b.md')" "a capture PR is allowed"
 assert_eq 0 "$(g 'bash "$HOME/scripts/definition-issue.sh" file "Sweep misses long threads" /tmp/b.md')" "the one issue path is allowed"
+
+# artifacts start private: the guard refuses any other visibility
+ga() { jq -nc --argjson i "$1" '{tool_name:"mcp__platform-outbound__create_artifact", tool_input:$i}' | HOME=/nonexistent bash "$A/guard.sh" >/dev/null 2>&1; echo $?; }
+assert_eq 0 "$(ga '{"title":"x","content":"y"}')" "an artifact with no visibility (private) is allowed"
+assert_eq 0 "$(ga '{"title":"x","content":"y","visibility":"private"}')" "a private artifact is allowed"
+assert_eq 2 "$(ga '{"title":"x","content":"y","visibility":"public"}')" "a public artifact is refused at creation"
+for t in create_artifact update_artifact get_artifact list_artifacts set_artifact_sharing; do
+  assert_eq "" "$(grep -x "mcp__platform-outbound__$t" "$A/denied-tools.txt")" "$t is not denied"
+done
 exit $FAILURES

@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # Claude Code harness adapter — PreToolUse hook (registered by install.sh for the
-# matcher `mcp__slack__.*|Bash`). Enforces the hard rule that Slack is READ-ONLY for
-# this agent: the Slack connection acts as the owner, so a write would be the owner
-# speaking.
+# matcher `mcp__slack__.*|mcp__platform-outbound__create_artifact|Bash`). Enforces the
+# hard rule that Slack is READ-ONLY for this agent: the Slack connection acts as the
+# owner, so a write would be the owner speaking.
 #
 #   mcp__slack__<tool>  -> allowed only when slack-tools.txt classifies it `read`;
 #                          a `write` tool and an unclassified one are refused.
+#   create_artifact     -> refused unless `visibility` is absent or "private": an
+#                          artifact starts private; only the owner's own request
+#                          shares it, through set_artifact_sharing afterwards.
 #   Bash                -> refused when the command reaches Slack directly
 #                          (mcp.slack.com, slack.com/api, hooks.slack.com): the
 #                          gateway would inject the owner's token into it.
@@ -24,7 +27,7 @@ INPUT="$(cat 2>/dev/null || true)"
 [ -z "$INPUT" ] && exit 0
 # the cheap test first: nothing below concerns a call that mentions neither slack
 # nor an issue
-case "$INPUT" in (*[sS][lL][aA][cC][kK]*|*[iI][sS][sS][uU][eE]*|*[aA][dD][dD][cC][oO][mM][mM][eE][nN][tT]*) ;; (*) exit 0;; esac
+case "$INPUT" in (*[sS][lL][aA][cC][kK]*|*[iI][sS][sS][uU][eE]*|*[aA][dD][dD][cC][oO][mM][mM][eE][nN][tT]*|*create_artifact*) ;; (*) exit 0;; esac
 
 ADAPTER_DIR="$(cd "$(dirname "$0")" && pwd)"
 TOOLS_FILE="$ADAPTER_DIR/slack-tools.txt"
@@ -55,7 +58,26 @@ issue_block() {
   exit 2
 }
 
+artifact_block() {
+  if [ -f "${WORK_DIR:-${HOME:-/home/agent}/work}/CONFIG.md" ] \
+     && . "$ADAPTER_DIR/../../log.sh" 2>/dev/null; then
+    logev warn artifact_blocked "create_artifact with visibility $1"
+  fi
+  printf 'slack-knowledge-sync: blocked — create_artifact with visibility "%s". An artifact of this agent is always created private; it is shared only when the owner asks, with set_artifact_sharing after creation (docs/capture.md → **Artifacts**).\n' "$1" >&2
+  exit 2
+}
+
 case "$TOOL" in
+  (mcp__platform-outbound__create_artifact)
+    if command -v jq >/dev/null 2>&1; then
+      vis="$(printf '%s' "$INPUT" | jq -r '.tool_input.visibility // "private"' 2>/dev/null)" || vis=unreadable
+    else
+      vis="$(printf '%s' "$INPUT" | sed -n 's/.*"visibility"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)"
+      [ -n "$vis" ] || { case "$INPUT" in (*'"visibility"'*) vis=unreadable;; (*) vis=private;; esac; }
+    fi
+    [ "$vis" = private ] || artifact_block "$vis"
+    exit 0
+    ;;
   (mcp__slack__*)
     [ -r "$TOOLS_FILE" ] || block "the Slack tool classification (slack-tools.txt) is unreadable, so no Slack call can be judged safe"
     class="$(sed -e 's/#.*//' "$TOOLS_FILE" | awk -v t="$TOOL" '$2 == t {print $1; exit}')"

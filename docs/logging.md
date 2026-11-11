@@ -32,6 +32,7 @@ The monitor and the audit read these; their shape is a contract.
 | `classifier_block` | the failure hook | `<tool> — <reason>` |
 | `api_failure` | the failure hook | `<class>: …` |
 | `slack_write_blocked` | `guard.sh` | `<tool> — <reason>` |
+| `artifact_blocked` | `guard.sh` | `create_artifact with visibility <value>` |
 | `definition_issue` | `definition-issue.sh`, `guard.sh` | `filed` / `blocked: <categories>` / `guard blocked …` |
 | `work_backup` | `work-backup.sh` | `pushed …` / errors |
 
@@ -44,10 +45,11 @@ The monitor and the audit read these; their shape is a contract.
 - **`slack-tools.txt`** — every tool of the `slack` MCP server classified `read` or
   `write`. The single source of truth for Slack access.
 - **`denied-tools.txt` → `permissions.deny`** — every Slack `write` tool (removed from
-  every session's tool list), plus tools no procedure calls (the Artifact Library,
+  every session's tool list), plus tools no procedure calls (artifact folders,
   sub-agents, web fetch and search).
-- **`guard.sh` (PreToolUse, `mcp__slack__.*|Bash`)** — allows a Slack tool only when
-  `slack-tools.txt` says `read`, so a tool Slack adds later is blocked until classified;
+- **`guard.sh` (PreToolUse, `mcp__slack__.*|mcp__platform-outbound__create_artifact|Bash`)**
+  — allows a Slack tool only when `slack-tools.txt` says `read`, so a tool Slack adds
+  later is blocked until classified; refuses a `create_artifact` that is not private;
   refuses a shell command reaching Slack's API directly; refuses any GitHub issue write
   that does not go through `scripts/definition-issue.sh`.
 - **`log-tool-event.sh`** — `PostToolUseFailure`, `PermissionDenied`, `StopFailure` →

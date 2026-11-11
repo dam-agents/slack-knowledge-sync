@@ -3,7 +3,8 @@
 # ~/.claude/settings.json (idempotent; what each part is: docs/logging.md → Harness
 # adapter):
 #
-#   hooks           PreToolUse guard.sh (Slack read-only wall) and the logging hook
+#   hooks           PreToolUse guard.sh (Slack read-only wall, private-first artifacts)
+#                   and the logging hook
 #                   log-tool-event.sh (PostToolUseFailure, PermissionDenied, StopFailure)
 #   automode-rules  the [slack-knowledge-sync] auto-mode classifier rules for this
 #                   agent's documented writes
@@ -33,6 +34,7 @@ GUARD="$ADAPTER_DIR/guard.sh"
 LOGHOOK="$ADAPTER_DIR/log-tool-event.sh"
 OWNED="$(dirname "$SETTINGS")/.slack-knowledge-sync-denied-tools.json"
 TAG="[slack-knowledge-sync]"
+MATCHER="mcp__slack__.*|mcp__platform-outbound__create_artifact|Bash"
 
 DENY="$(sed -e 's/#.*//' -e 's/[[:space:]]*$//' -e 's/^[[:space:]]*//' "$ADAPTER_DIR/denied-tools.txt" 2>/dev/null \
   | jq -Rsc 'split("\n") | map(select(length > 0))' 2>/dev/null)"
@@ -48,20 +50,21 @@ AM_ALLOW="$(jq -nc --arg h "$HOME_DIR" --arg t "$TAG" '[
   "\($t) Running bash \($h)/scripts/state.sh, \($h)/scripts/kb-check.sh, \($h)/scripts/preflight.sh, \($h)/scripts/monitor.sh or \($h)/scripts/verify-onboarding.sh with any arguments: they record captures, check the knowledge base and compute the run worklists.",
   "\($t) Running bash \($h)/scripts/work-backup.sh persist or restore: it backs up \($h)/work/ to the private repository GITHUB_REPO_WORK names.",
   "\($t) In GitHub mode, cloning the kb_repo of \($h)/work/CONFIG.md into /tmp/slack-knowledge-sync-*, pushing a new capture/* branch there and opening one pull request with gh pr create: that is how a capture reaches a shared knowledge base. Never a push to the default branch.",
+  "\($t) Creating a private artifact with mcp__platform-outbound__create_artifact, or a new version with update_artifact, when the owner asks for one in their DM; set_artifact_sharing only when the owner asks for that share.",
   "\($t) Sending one direct message to the owner_dm_chat_id of \($h)/work/CONFIG.md with mcp__platform-outbound__send_channel_message: the capture, sweep, audit and monitor reports go there and nowhere else."]')"
 
 HOOKS_JQ='
   def own($k; $cmd): [.hooks[$k][]? | select([.hooks[]?.command] | index($cmd) | not)];
   .hooks //= {} |
-  .hooks.PreToolUse = (own("PreToolUse"; $g) + [{matcher:"mcp__slack__.*|Bash", hooks:[{type:"command", command:$g, timeout:10}]}]) |
+  .hooks.PreToolUse = (own("PreToolUse"; $g) + [{matcher:$m, hooks:[{type:"command", command:$g, timeout:10}]}]) |
   .hooks.PostToolUseFailure = (own("PostToolUseFailure"; $l) + [{matcher:"*", hooks:[{type:"command", command:$l, timeout:15}]}]) |
   .hooks.PermissionDenied = (own("PermissionDenied"; $l) + [{matcher:"*", hooks:[{type:"command", command:$l, timeout:10}]}]) |
   .hooks.StopFailure = (own("StopFailure"; $l) + [{hooks:[{type:"command", command:$l, timeout:10}]}])'
 
 if [ "$CHECK" = 1 ]; then
   missing=""
-  jq -e --arg g "$GUARD" --arg l "$LOGHOOK" '
-      ([.hooks.PreToolUse[]? | select(.matcher == "mcp__slack__.*|Bash") | .hooks[]?.command] | index($g)) != null
+  jq -e --arg g "$GUARD" --arg l "$LOGHOOK" --arg m "$MATCHER" '
+      ([.hooks.PreToolUse[]? | select(.matcher == $m) | .hooks[]?.command] | index($g)) != null
       and ([.hooks.PostToolUseFailure[]?.hooks[]?.command] | index($l)) != null
       and ([.hooks.PermissionDenied[]?.hooks[]?.command] | index($l)) != null
       and ([.hooks.StopFailure[]?.hooks[]?.command] | index($l)) != null' "$SETTINGS" >/dev/null 2>&1 \
@@ -81,7 +84,7 @@ mkdir -p "$(dirname "$SETTINGS")"
 [ -s "$SETTINGS" ] || echo '{}' > "$SETTINGS"
 
 tmp="$(mktemp "$SETTINGS.XXXXXX")"
-if ! jq --arg g "$GUARD" --arg l "$LOGHOOK" --arg t "$TAG" \
+if ! jq --arg g "$GUARD" --arg l "$LOGHOOK" --arg m "$MATCHER" --arg t "$TAG" \
       --argjson e "$AM_ENV" --argjson a "$AM_ALLOW" --argjson deny "$DENY" --argjson prev "$PREV" "
     def am(\$k; \$new): .autoMode[\$k] = (((.autoMode[\$k] // [\"\$defaults\"])
         | map(select(type != \"string\" or (startswith(\$t) | not)))) + \$new);
@@ -98,7 +101,7 @@ if jq -e -n --slurpfile o "$SETTINGS" --slurpfile n "$tmp" '$o == $n' >/dev/null
   rm -f "$tmp"; echo "hooks, auto-mode rules and tool deny list already current ($SETTINGS)"
 else
   mv "$tmp" "$SETTINGS"
-  echo "installed into $SETTINGS: PreToolUse -> guard.sh; PostToolUseFailure, PermissionDenied, StopFailure -> log-tool-event.sh; $TAG auto-mode rules; $(printf '%s' "$DENY" | jq length) tools -> permissions.deny"
+  echo "installed into $SETTINGS: PreToolUse ($MATCHER) -> guard.sh; PostToolUseFailure, PermissionDenied, StopFailure -> log-tool-event.sh; $TAG auto-mode rules; $(printf '%s' "$DENY" | jq length) tools -> permissions.deny"
 fi
 printf '%s\n' "$DENY" > "$OWNED" 2>/dev/null || true
 exit 0

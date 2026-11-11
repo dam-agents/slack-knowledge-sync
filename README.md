@@ -121,8 +121,9 @@ Filled at onboarding; exact semantics in [`docs/config.md`](docs/config.md).
 - **External surfaces:** your own DM with the DAM bot (reports); in local mode, the
   knowledge base on the volume, private to you; in GitHub mode, pull requests to
   `kb_repo` — visible to everyone who can read that repository; with
-  `definition_issues: enabled`, anonymous issues on this public repository. It publishes
-  nothing to the Artifact Library and fetches nothing from the web.
+  `definition_issues: enabled`, anonymous issues on this public repository; artifacts in
+  the Artifact Library when you ask for one — always created private, shared only when you
+  ask. It fetches nothing from the web.
 
 ## Persistence
 

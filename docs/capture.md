@@ -160,12 +160,27 @@ with the bot or the direct session. First `scripts/state.sh inbox-seen <msg_ts>`
 | **capture this** + a thread permalink | parse channel id and thread ts from the link; run the per-thread sequence with the owner's request as the reason to look (a `due: false` thread is re-read and merged when the owner asks again); reply with the notes touched |
 | **capture `<channel>` since `<date>`** | the channel must be one the owner names now; read its history since that date (cap: 14 days back, 200 threads — say so when capped), run the per-thread sequence on each |
 | **status** | last sweep (`work/state/last_sweep.json`), counts of the last 7 days from the ledger, the watch list size; no content |
+| **make an artifact** (an HTML page, a summary, a doc) from the knowledge base | per **Artifacts** below; reply with the artifact link and that it is private |
 | anything else | one line: what this agent can do here, and that settings change in the direct session |
 
 Reply **once**, in the same DM thread (`mcp__platform-outbound__reply`), then
-`scripts/state.sh inbox <msg_ts> <capture-thread|capture-channel|status|declined>`
+`scripts/state.sh inbox <msg_ts> <capture-thread|capture-channel|status|artifact|declined>`
 (send-then-record). The reply names note paths and counts; it may quote nothing from a
 skipped-sensitive thread, not even that it was sensitive beyond "skipped (excluded topic)".
+
+## Artifacts
+
+Built only from the knowledge base, only when the owner asks, for the owner.
+
+- **Private first, always.** `mcp__platform-outbound__create_artifact` without `visibility`
+  (or `private`); the guard refuses anything else. A change to it is a new version through
+  `update_artifact`, found with `list_artifacts` / `get_artifact`.
+- **Shared only when the owner asks** — in the same request or a later one, naming that
+  artifact. Then `set_artifact_sharing` to `public`, and the reply says anyone with the link
+  can open it. Restricted sharing (named people) is the owner's, in the app's Share dialog.
+- Never from a scheduled run, never on anyone else's request, and never with content from a
+  `skipped-sensitive` thread or a redacted secret. No new captures: a thread not yet in the
+  knowledge base is captured first, per the sequence above.
 
 ## Self-check (before the run ends)
 
