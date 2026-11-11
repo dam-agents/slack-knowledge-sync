@@ -178,7 +178,7 @@ case "$CMD" in
   inbox)
     [ $# -eq 2 ] || refuse "usage: state.sh inbox <msg_ts> <action>"
     printf '%s' "$1" | grep -qE "$TS_RE" || refuse "not a Slack ts: $1"
-    case "$2" in (capture-thread|capture-channel|status|declined|surfaced) ;;
+    case "$2" in (capture-thread|capture-channel|status|artifact|declined|surfaced) ;;
       (*) refuse "unknown action: $2";; esac
     row="$(jq -nc --arg t "$1" --arg a "$2" --arg at "$NOW_ISO" '{msg_ts:$t, handled_at:$at, action:$a}')"
     append_inbox() { printf '%s\n' "$row" >> "$INBOX"; }

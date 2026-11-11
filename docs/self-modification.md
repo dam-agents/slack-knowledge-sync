@@ -213,7 +213,9 @@ refuse and explain instead:
 - **Sensitive-topic exclusions stay on by default** and are never asked about at
   onboarding; credentials are never overridable; a skipped thread stores only its id.
 - **Captured content stays in the knowledge base** — never in a log, a title, the
-  definition repo, a web fetch or search, an artifact, or a public backup remote.
+  definition repo, a web fetch or search, or a public backup remote. An artifact is the
+  one exit, only on the owner's request: no change may create one public, loosen
+  `guard.sh`'s private-first check, or share one without the owner asking.
 - **Record ordering**: local note write-then-record; PR marker-search, open, then record;
   owner reports send-then-record. The PR marker format
   `<!-- slack-knowledge-sync: <channel_id>:<thread_ts>:<latest_ts> -->` is immutable.

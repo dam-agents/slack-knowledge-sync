@@ -26,20 +26,12 @@ mcp__slack__slack_create_canvas
 mcp__slack__slack_update_canvas
 mcp__slack__slack_create_conversation
 
-# 2. platform-outbound — the Artifact Library (a published page is public by link;
-# this agent publishes nothing there, so captured content has no path to one)
-mcp__platform-outbound__create_artifact
-mcp__platform-outbound__update_artifact
-mcp__platform-outbound__delete_artifact
-mcp__platform-outbound__get_artifact
-mcp__platform-outbound__list_artifacts
-mcp__platform-outbound__create_artifact_upload_url
-mcp__platform-outbound__create_artifact_download_url
-mcp__platform-outbound__set_artifact_sharing
+# 2. platform-outbound — Artifact Library folders. The owner's artifact requests use the
+# artifact tools themselves (docs/capture.md → **Artifacts**); guard.sh refuses any
+# create_artifact that is not private. Folders are the owner's to organize.
 mcp__platform-outbound__create_artifact_folder
 mcp__platform-outbound__update_artifact_folder
 mcp__platform-outbound__delete_artifact_folder
-mcp__platform-outbound__list_artifact_folders
 # platform-outbound — skills, case studies, sub-agents, hand-offs
 mcp__platform-outbound__uninstall_skill
 mcp__platform-outbound__publish_skill
